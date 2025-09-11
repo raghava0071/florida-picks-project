@@ -1,0 +1,1 @@
+linters: lintr::default_linters
