@@ -1,0 +1,74 @@
+
+suppressPackageStartupMessages({
+  library(pdftools)
+  library(dplyr)
+  library(stringr)
+  library(tidyr)
+  library(lubridate)
+})
+
+# Read and parse Pick 2 PDF into a clean tibble
+parse_pick2_pdf <- function(pdf_path) {
+  stopifnot(file.exists(pdf_path))
+  txt   <- pdftools::pdf_text(pdf_path)
+  lines <- unlist(strsplit(txt, "\n", fixed = TRUE))
+
+  # lines like: MM/DD/YY  [M|E]  D - D
+  date_lines <- stringr::str_subset(lines, "^\d{2}/\d{2}/\d{2}\s+[ME]\s+\d\s*-\s*\d")
+
+  m <- stringr::str_match_all(
+    date_lines,
+    "^(\d{2}/\d{2}/\d{2})\s+([ME])\s+(\d)\s*-\s*(\d)"
+  )
+
+  out <- dplyr::bind_rows(lapply(m, function(mm) {
+    if (nrow(mm) == 0) return(NULL)
+    tibble::tibble(
+      draw_date = as.Date(mm[, 2], format = "%m/%d/%y"),
+      time      = mm[, 3],
+      d1        = as.integer(mm[, 4]),
+      d2        = as.integer(mm[, 5])
+    )
+  }))
+
+  out |>
+    tidyr::drop_na(draw_date, time, d1, d2) |>
+    dplyr::filter(d1 %in% 0:9, d2 %in% 0:9, time %in% c("M","E")) |>
+    dplyr::arrange(dplyr::desc(draw_date), time)
+}
+
+# Download the latest Pick 2 PDF
+download_pick2_pdf <- function(dest = "data_raw/pick2.pdf") {
+  dir.create(dirname(dest), showWarnings = FALSE, recursive = TRUE)
+  utils::download.file(
+    url      = "https://files.floridalottery.com/exptkt/p2.pdf",
+    destfile = dest, mode = "wb", quiet = TRUE
+  )
+  dest
+}
+
+# Write clean CSV and a dated snapshot (first time only)
+write_pick2_csv <- function(tbl, clean_path = "data/clean/pick2_history.csv") {
+  stopifnot(all(c("draw_date","time","d1","d2") %in% names(tbl)))
+  dir.create(dirname(clean_path), showWarnings = FALSE, recursive = TRUE)
+  readr::write_csv(tbl, clean_path)
+  snap <- file.path(dirname(clean_path),
+                    sprintf("pick2_%s.csv", format(Sys.Date(), "%Y-%m-%d")))
+  if (!file.exists(snap)) readr::write_csv(tbl, snap)
+  invisible(clean_path)
+}
+
+# Quick health checks
+check_pick2 <- function(tbl) {
+  list(
+    n             = nrow(tbl),
+    range         = c(min(tbl$draw_date), max(tbl$draw_date)),
+    any_na        = any(is.na(tbl)),
+    digits_ok     = all(tbl$d1 %in% 0:9) && all(tbl$d2 %in% 0:9),
+    one_per_slot  = {
+      dup <- tbl |> count(draw_date, time) |> filter(n > 1)
+      nrow(dup) == 0
+    }
+  )
+}
+
