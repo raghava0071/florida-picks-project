@@ -2,3 +2,17 @@
 .Rhistory
 .RData
 .Ruserdata
+
+# macOS
+.DS_Store
+
+# RStudio noise
+.Rhistory
+.RData
+.Rproj.user/
+
+# Local libraries
+renv/library/
+
+# Raw downloads
+data_raw/
