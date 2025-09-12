@@ -1,0 +1,45 @@
+name: Weekly Backtest
+
+on:
+  workflow_dispatch:
+  schedule:
+    - cron: "37 7 * * 1"   # every Monday 07:37 UTC
+
+jobs:
+  backtest:
+    runs-on: macos-14
+    steps:
+      - uses: actions/checkout@v4
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.1'
+      - name: System deps
+        run: |
+          brew update
+          brew install poppler
+      - name: Install R packages
+        run: |
+          R -q -e 'install.packages(c("readr","dplyr","tidyr","purrr"))'
+      - name: Run backtests
+        run: |
+          R -q -e 'source("R/backtest_models.R"); \
+                   pick2 <- readr::read_csv("data/clean/pick2_history.csv", show_col_types=FALSE); \
+                   pick2 <- dplyr::mutate(pick2, draw_date=as.Date(draw_date), time=as.character(time), d1=as.integer(d1), d2=as.integer(d2)); \
+                   bt <- backtest_models(pick2, start_after_days=400, win_days=180, ewma_lambda=0.97, blend_w=0.5); \
+                   dir.create("data/analysis", recursive=TRUE, showWarnings=FALSE); \
+                   readr::write_csv(bt$by_date, "data/analysis/backtest_by_date_multi.csv"); \
+                   readr::write_csv(bt$summary, "data/analysis/backtest_summary_multi.csv")'
+      - name: Upload artifacts
+        uses: actions/upload-artifact@v4
+        with:
+          name: backtest-results
+          path: |
+            data/analysis/backtest_by_date_multi.csv
+            data/analysis/backtest_summary_multi.csv
+      - name: Commit results (if changed)
+        run: |
+          git config user.name "github-actions"
+          git config user.email "github-actions@users.noreply.github.com"
+          git add data/analysis/backtest_by_date_multi.csv data/analysis/backtest_summary_multi.csv || true
+          git diff --cached --quiet || git commit -m "ci(backtest): refresh weekly backtest outputs"
+          git push || true
