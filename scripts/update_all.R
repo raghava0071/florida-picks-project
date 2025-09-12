@@ -14,3 +14,5 @@ if (file.exists(csv)) {
 readr::write_csv(df, csv)
 message("Wrote ", csv)
 print(utils::head(df))
+
+source("R/predict_next.R")
