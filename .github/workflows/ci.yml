@@ -35,3 +35,39 @@ jobs:
       - name: Tests
         run: |
           R -q -e 'testthat::test_dir("tests")'
+
+name: CI
+
+on:
+  push:
+  pull_request:
+  workflow_dispatch:
+
+jobs:
+  check:
+    runs-on: ubuntu-latest
+
+    steps:
+      - uses: actions/checkout@v4
+
+      - name: Install system deps (poppler)
+        run: |
+          sudo apt-get update
+          sudo apt-get install -y --no-install-recommends poppler-utils
+
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          use-public-rspm: true
+
+      - name: Install R packages
+        run: |
+          R -q -e 'install.packages(c("dplyr","stringr","readr","tidyr","lubridate","ggplot2","DescTools"), repos="https://cloud.r-project.org")'
+
+      - name: Smoke test: parser returns rows
+        run: |
+          R -q -e 'source("R/parse_pick2.R"); x <- parse_pick2(); stopifnot(is.data.frame(x), nrow(x) > 100, all(c("draw_date","time","d1","d2") %in% names(x)))'
+
+      - name: Smoke test: predictions get written
+        run: |
+          R -q -e 'source("R/predict_next.R"); invisible(predict_next()); stopifnot(file.exists("outputs/predictions_next_draw.csv")); stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))'
+
