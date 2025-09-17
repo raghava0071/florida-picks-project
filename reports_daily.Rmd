@@ -8,7 +8,6 @@ suppressPackageStartupMessages({
   library(readr); library(dplyr); library(ggplot2)
 })
 pick2 <- readr::read_csv("data/clean/pick2_history.csv", show_col_types = FALSE)
-
 ```
 
 ## Latest rows
@@ -23,4 +22,22 @@ pick2 |>
   ggplot(aes(factor(d1), n)) +
   geom_col() +
   labs(x = "d1", y = "count")
+```
+
+## Top-25 (raw)
+```{r}
+if (file.exists("outputs/top25_pairs_next_draw.csv")) {
+  readr::read_csv("outputs/top25_pairs_next_draw.csv", show_col_types = FALSE) |> head(10)
+} else {
+  cat("No raw top-25 file yet.")
+}
+```
+
+## Calibrated Top-25
+```{r}
+if (file.exists("outputs/top25_pairs_next_draw_cal.csv")) {
+  readr::read_csv("outputs/top25_pairs_next_draw_cal.csv", show_col_types = FALSE) |> head(10)
+} else {
+  cat("No calibrated file yet.")
+}
 ```
