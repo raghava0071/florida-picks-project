@@ -4,25 +4,29 @@ on:
     - cron: "15 6 * * *"   # daily at 06:15 UTC
   workflow_dispatch:
 
-permissions:
-  contents: write
-
 jobs:
   update:
     runs-on: ubuntu-latest
+    permissions:
+      contents: write
     steps:
       - uses: actions/checkout@v4
+        with:
+          fetch-depth: 0
 
-      - name: System deps (poppler)
+      - name: Install system deps (poppler)
         run: |
           sudo apt-get update
           sudo apt-get install -y poppler-utils
 
       - uses: r-lib/actions/setup-r@v2
 
-      - name: Install R packages (minimal)
-        run: |
-          R -q -e 'install.packages(c("dplyr","stringr","readr","tidyr","lubridate"), repos="https://cloud.r-project.org")'
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: >
+            any::dplyr any::tidyr any::readr any::stringr any::ggplot2
+            any::lubridate any::rmarkdown
+          cache-version: 1
 
       - name: Run updater
         run: R -q -e 'source("scripts/update_all.R")'
@@ -31,5 +35,5 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/clean/pick2_history.csv outputs/*.csv || true
+          git add data/clean/pick2_history.csv || true
           git diff --quiet && echo "No changes." || (git commit -m "chore(data): refresh Pick2 history" && git push)
