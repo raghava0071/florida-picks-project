@@ -1,0 +1,26 @@
+---
+title: "Florida Pick 2 — Daily Report"
+output: html_document
+---
+
+```{r setup, include=FALSE}
+suppressPackageStartupMessages({
+  library(readr); library(dplyr); library(ggplot2)
+})
+pick2 <- readr::read_csv("data/clean/pick2_history.csv", show_col_types = FALSE)
+
+```
+
+## Latest rows
+```{r}
+head(pick2, 10)
+```
+
+## d1 distribution
+```{r}
+pick2 |>
+  count(d1) |>
+  ggplot(aes(factor(d1), n)) +
+  geom_col() +
+  labs(x = "d1", y = "count")
+```
