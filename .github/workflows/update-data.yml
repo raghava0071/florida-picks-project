@@ -1,39 +1,3 @@
-	
-name: Update Pick2 data
-on:
-  schedule:
-    - cron: "15 6 * * *"   # daily at 06:15 UTC
-  workflow_dispatch:
-
-jobs:
-  update:
-    runs-on: ubuntu-latest
-    permissions:
-      contents: write
-    steps:
-      - uses: actions/checkout@v4
-
-      - name: Install system deps (poppler)
-        run: |
-          sudo apt-get update
-          sudo apt-get install -y poppler-utils
-
-      - uses: r-lib/actions/setup-r@v2
-
-      - name: Install R packages
-        run: |
-          R -q -e 'install.packages(c("dplyr","stringr","readr","lubridate"), repos="https://cloud.r-project.org")'
-
-      - name: Run updater
-        run: R -q -e 'source("scripts/update_all.R")'
-
-      - name: Commit updated data (if changed)
-        run: |
-          git config user.name "github-actions[bot]"
-          git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/clean/pick2_history.csv || true
-          git diff --quiet && echo "No changes." || (git commit -m "chore(data): refresh Pick2 history" && git push)
-
 name: Update Pick2 data
 
 on:
@@ -47,7 +11,6 @@ permissions:
 jobs:
   update:
     runs-on: ubuntu-latest
-
     steps:
       - uses: actions/checkout@v4
 
@@ -76,7 +39,6 @@ jobs:
           git diff --staged --quiet && echo "No changes to commit." || git commit -m "chore(data): refresh Pick2 history + predictions"
           git push
 
-
       - name: Upload run artifacts (always)
         if: always()
         uses: actions/upload-artifact@v4
@@ -87,4 +49,3 @@ jobs:
             data/clean/*
             outputs/*
           if-no-files-found: warn
-
