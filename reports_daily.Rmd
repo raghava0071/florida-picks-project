@@ -1,3 +1,6 @@
+cat("Render time: ", as.character(Sys.time()))
+knitr::opts_chunk$set(cache = FALSE)
+
 ---
 title: "Florida Pick 2 — Daily Report"
 output: html_document
