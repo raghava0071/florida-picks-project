@@ -16,3 +16,7 @@ renv/library/
 
 # Raw downloads
 data_raw/
+# backups and local artifacts
+*.bak_*
+data/analysis/*.csv
+outputs/*.png
