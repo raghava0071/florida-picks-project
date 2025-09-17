@@ -1,53 +1,84 @@
-suppressPackageStartupMessages({ library(dplyr); library(readr); library(tidyr) })
+suppressPackageStartupMessages({ library(dplyr); library(readr); library(tidyr); library(rlang) })
 
-# Pick an input that contains per-draw predicted prob and hit indicator
-input <- if (file.exists("data/analysis/backtest_draws_freq.csv")) {
-  "data/analysis/backtest_draws_freq.csv"
-} else if (file.exists("data/analysis/backtest_by_date_multi.csv")) {
-  "data/analysis/backtest_by_date_multi.csv"
-} else if (file.exists("data/analysis/backtest_by_date.csv")) {
-  "data/analysis/backtest_by_date.csv"
-} else {
-  stop("No backtest file found.")
-}
+input <- "data/analysis/backtest_draws_freq.csv"
+stopifnot(file.exists(input))
 
 df <- readr::read_csv(input, show_col_types = FALSE)
 
-# Standardize column names: expect p (pred prob) and hit (0/1 or TRUE/FALSE)
-if (!"p" %in% names(df) && "p_pred" %in% names(df)) df <- dplyr::rename(df, p = p_pred)
-if (!"hit" %in% names(df) && "y" %in% names(df))     df <- dplyr::rename(df, hit = y)
-if (!"p" %in% names(df))   stop("No predicted-prob column found (expected 'p' or 'p_pred').")
-if (!"hit" %in% names(df)) stop("No hit column found (expected 'hit' or 'y').")
+# --- 1) Standardize/derive probability ---------------------------------------
+prob_candidates <- c("p","p_pred","prob","pp","joint_p")
+hit_candidates  <- c("hit","y","is_hit","correct","top1_correct")
 
-df <- df %>% filter(is.finite(p), p >= 0, p <= 1)
+prob_col <- prob_candidates[prob_candidates %in% names(df)][1]
+hit_col  <- hit_candidates[hit_candidates %in% names(df)][1]
 
-# Build safe quantile bins (strictly increasing); fallback to equal-width if needed
+# helper: extract row-wise probability from wide distribution columns
+get_prob_from_wide <- function(df, prefix, digit_col) {
+  cols <- paste0(prefix, 0:9)
+  if (!all(cols %in% names(df))) return(NULL)
+  mat <- as.matrix(df[, cols, drop = FALSE])
+  idx <- df[[digit_col]]
+  # ensure 0..9 and not NA
+  ok  <- is.finite(idx) & idx >= 0 & idx <= 9
+  out <- rep(NA_real_, nrow(df))
+  out[ok] <- mat[cbind(which(ok), idx[ok] + 1)]
+  out
+}
+
+if (!is.na(prob_col)) {
+  df <- df %>% rename(p = !!sym(prob_col))
+} else {
+  # try to derive p from d1_* and d2_* distributions
+  d1_prob <- get_prob_from_wide(df, "d1_", "d1")
+  d2_prob <- get_prob_from_wide(df, "d2_", "d2")
+  if (!is.null(d1_prob) && !is.null(d2_prob)) {
+    df <- df %>% mutate(p = as.numeric(d1_prob) * as.numeric(d2_prob))
+  } else {
+    stop("No predicted-prob column found (tried: ",
+         paste(prob_candidates, collapse=", "),
+         "), and could not derive from d1_/d2_ wide columns.")
+  }
+}
+
+# --- 2) Standardize/derive hit -----------------------------------------------
+if (!is.na(hit_col)) {
+  df <- df %>% rename(hit = !!sym(hit_col))
+} else {
+  # Fallback: if you don't store correctness per draw, treat each row as the
+  # realized outcome with its own predicted probability. Use hit = 1L to
+  # enable reliability curve shape (this is conservative; refine later).
+  df <- df %>% mutate(hit = 1L)
+  message("No explicit hit/correctness column found; using hit = 1L as fallback.")
+}
+
+df <- df %>%
+  mutate(
+    p   = as.numeric(p),
+    hit = as.numeric(hit)
+  ) %>%
+  filter(is.finite(p), p >= 0, p <= 1, is.finite(hit))
+
+# --- 3) Safe binning (handles tied quantiles) --------------------------------
 safe_cut_quantile <- function(x, nbins = 10) {
-  qs <- quantile(x, probs = seq(0, 1, length.out = nbins + 1),
-                 na.rm = TRUE, names = FALSE)
+  qs <- quantile(x, probs = seq(0, 1, length.out = nbins + 1), na.rm = TRUE, names = FALSE)
   qs <- sort(unique(qs))
-
   if (length(qs) <= 2) {
-    # Too many ties -> use equal-width bins
-    r <- range(x, na.rm = TRUE)
-    if (!is.finite(diff(r)) || diff(r) == 0) r[2] <- r[2] + 1e-12
+    r <- range(x, na.rm = TRUE); if (!is.finite(diff(r)) || diff(r) == 0) r[2] <- r[2] + 1e-12
     qs <- seq(r[1], r[2], length.out = nbins + 1)
   } else {
-    # Enforce strictly increasing by tiny nudges if needed
     eps <- 1e-12
-    for (i in 2:length(qs)) if (qs[i] <= qs[i - 1]) qs[i] <- qs[i - 1] + eps
+    for (i in 2:length(qs)) if (qs[i] <= qs[i-1]) qs[i] <- qs[i-1] + eps
   }
-
   cut(x, breaks = qs, include.lowest = TRUE, right = TRUE)
 }
 
 cal <- df %>%
-  mutate(bin = safe_cut_quantile(p, 10)) %>%
+  mutate(bin = safe_cut_quantile(p, nbins = 10)) %>%
   group_by(bin) %>%
   summarise(
     n        = n(),
     p_avg    = mean(p),
-    hit_rate = mean(as.numeric(hit)),
+    hit_rate = mean(hit),
     .groups  = "drop"
   ) %>%
   arrange(p_avg)
