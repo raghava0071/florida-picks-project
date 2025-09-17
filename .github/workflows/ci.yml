@@ -71,3 +71,14 @@ jobs:
         run: |
           R -q -e 'source("R/predict_next.R"); invisible(predict_next()); stopifnot(file.exists("outputs/predictions_next_draw.csv")); stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))'
 
+
+      - name: Upload smoke artifacts (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: ci-run
+          path: |
+            data_raw/*
+            outputs/*
+          if-no-files-found: warn
+

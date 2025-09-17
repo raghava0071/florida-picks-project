@@ -76,3 +76,15 @@ jobs:
           git diff --staged --quiet && echo "No changes to commit." || git commit -m "chore(data): refresh Pick2 history + predictions"
           git push
 
+
+      - name: Upload run artifacts (always)
+        if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: update-run
+          path: |
+            data_raw/*
+            data/clean/*
+            outputs/*
+          if-no-files-found: warn
+
