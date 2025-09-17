@@ -11,6 +11,7 @@ permissions:
 jobs:
   check:
     runs-on: ubuntu-latest
+
     steps:
       - uses: actions/checkout@v4
 
@@ -19,7 +20,8 @@ jobs:
           sudo apt-get update
           sudo apt-get install -y --no-install-recommends poppler-utils
 
-      - uses: r-lib/actions/setup-r@v2
+      - name: Set up R
+        uses: r-lib/actions/setup-r@v2
         with:
           use-public-rspm: true
 
@@ -29,16 +31,11 @@ jobs:
 
       - name: Smoke test: parser returns rows
         run: |
-          R -q -e 'source("R/parse_pick2.R"); x <- parse_pick2(); \
-                   stopifnot(is.data.frame(x)); \
-                   stopifnot(nrow(x) > 100); \
-                   stopifnot(all(c("draw_date","time","d1","d2") %in% names(x)))'
+          R -q -e 'source("R/parse_pick2.R"); x <- parse_pick2(); stopifnot(is.data.frame(x)); stopifnot(nrow(x) > 100); stopifnot(all(c("draw_date","time","d1","d2") %in% names(x)))'
 
       - name: Smoke test: predictions get written
         run: |
-          R -q -e 'source("R/predict_next.R"); invisible(predict_next()); \
-                   stopifnot(file.exists("outputs/predictions_next_draw.csv")); \
-                   stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))'
+          R -q -e 'source("R/predict_next.R"); invisible(predict_next()); stopifnot(file.exists("outputs/predictions_next_draw.csv")); stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))'
 
       - name: Upload smoke artifacts (always)
         if: always()
@@ -49,3 +46,4 @@ jobs:
             data_raw/*
             outputs/*
           if-no-files-found: warn
+
