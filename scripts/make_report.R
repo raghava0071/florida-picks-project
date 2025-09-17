@@ -14,3 +14,20 @@ if (nzchar(Sys.getenv("RSTUDIO_PANDOC"))) {
 rmarkdown::render("reports_daily.Rmd",
                   output_file = "docs/index.html",
                   quiet = FALSE)
+
+
+
+You should now see **both** “Top-25 (raw)” and “Calibrated Top-25” in the report.
+
+---
+
+## 2) Run the Action once & verify the calibrated CSV is committed
+
+**On GitHub → Actions → Update Pick2 data → Run workflow**.  
+When it completes, check the repo for `outputs/top25_pairs_next_draw_cal.csv` updated in the last commit (you already changed the workflow to include it).
+
+If it doesn’t commit, re-run locally to confirm the file exists:
+```bash
+cd ~/Desktop/florida-picks-project
+R -q -e 'source("scripts/update_all.R")'
+ls -lh outputs/top25_pairs_next_draw_cal.csv
