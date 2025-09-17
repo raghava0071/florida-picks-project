@@ -94,14 +94,25 @@ if (!exists("show_topk")) {
     df <- readr::read_csv(path, show_col_types = FALSE)
     names(df) <- tolower(names(df))
     if (!all(c("d1","d2","prob") %in% names(df))) return(invisible(NULL))
-    df |>
-      dplyr::arrange(dplyr::desc(prob)) |>
-      dplyr::slice_head(n = k) |>
-      dplyr::mutate(pair = paste0(d1, d2)) |>
-      dplyr::select(pair, prob) |>
+    df %>%
+      dplyr::arrange(dplyr::desc(prob)) %>%
+      dplyr::slice_head(n = k) %>%
+      dplyr::mutate(pair = paste0(d1, d2)) %>%
+      dplyr::select(pair, prob) %>%
       knitr::kable(caption = paste0("Top ", k, " — ", title), digits = 5)
   }
 }
 
 show_topk("outputs/predictions_weekday_blend_M.csv", 10, "Weekday Blend (Morning)")
 show_topk("outputs/predictions_weekday_blend_E.csv", 10, "Weekday Blend (Evening)")
+```
+
+## Methods (Quick)
+
+- Base: frequency of pairs over all history.
+- Weekday×Time blend: p_BW = (1 - alpha_W) * p_base + alpha_W * p_weekday.
+- Markov backoff: Laplace-smoothed P(next|last) blended: p = (1 - alpha_M) * p_BW + alpha_M * p_markov.
+- Calibration: Platt scaling (logistic) on backtests; renormalized per draw.
+- Uplift: Paired bootstrap CI on log-loss vs. uniform.
+
+Weights loaded from `data/analysis/weights_backoff.yml`.

@@ -353,6 +353,8 @@ display: none;
 </div>
 
 
+<p>cat(“Render time:”, as.character(Sys.time()))
+knitr::opts_chunk$set(cache = FALSE)</p>
 <div id="latest-rows" class="section level2">
 <h2>Latest rows</h2>
 <pre class="r"><code>head(pick2, 10)</code></pre>
@@ -569,17 +571,32 @@ if (!exists(&quot;show_topk&quot;)) {
     df &lt;- readr::read_csv(path, show_col_types = FALSE)
     names(df) &lt;- tolower(names(df))
     if (!all(c(&quot;d1&quot;,&quot;d2&quot;,&quot;prob&quot;) %in% names(df))) return(invisible(NULL))
-    df |&gt;
-      dplyr::arrange(dplyr::desc(prob)) |&gt;
-      dplyr::slice_head(n = k) |&gt;
-      dplyr::mutate(pair = paste0(d1, d2)) |&gt;
-      dplyr::select(pair, prob) |&gt;
+    df %&gt;%
+      dplyr::arrange(dplyr::desc(prob)) %&gt;%
+      dplyr::slice_head(n = k) %&gt;%
+      dplyr::mutate(pair = paste0(d1, d2)) %&gt;%
+      dplyr::select(pair, prob) %&gt;%
       knitr::kable(caption = paste0(&quot;Top &quot;, k, &quot; — &quot;, title), digits = 5)
   }
 }
 
 show_topk(&quot;outputs/predictions_weekday_blend_M.csv&quot;, 10, &quot;Weekday Blend (Morning)&quot;)
 show_topk(&quot;outputs/predictions_weekday_blend_E.csv&quot;, 10, &quot;Weekday Blend (Evening)&quot;)</code></pre>
+</div>
+<div id="methods-quick" class="section level2">
+<h2>Methods (Quick)</h2>
+<ul>
+<li>Base: frequency of pairs over all history.</li>
+<li>Weekday×Time blend: p_BW = (1 - alpha_W) * p_base + alpha_W *
+p_weekday.</li>
+<li>Markov backoff: Laplace-smoothed P(next|last) blended: p = (1 -
+alpha_M) * p_BW + alpha_M * p_markov.</li>
+<li>Calibration: Platt scaling (logistic) on backtests; renormalized per
+draw.</li>
+<li>Uplift: Paired bootstrap CI on log-loss vs. uniform.</li>
+</ul>
+<p>Weights loaded from
+<code>data/analysis/weights_backoff.yml</code>.</p>
 </div>
 
 
