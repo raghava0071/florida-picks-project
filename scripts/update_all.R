@@ -43,3 +43,8 @@ if (file.exists("R/analyze_patterns.R")) {
 }
 
 message("Updater finished OK.")
+
+if (file.exists("R/apply_calibration_to_next.R")) {
+  source("R/apply_calibration_to_next.R")
+  if (exists("apply_calibration_to_next")) apply_calibration_to_next()
+}
