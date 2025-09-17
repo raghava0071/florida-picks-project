@@ -1,0 +1,27 @@
+name: Weekly Backtest
+on:
+  schedule:
+    - cron: "0 7 * * 1"   # Mondays 07:00 UTC
+  workflow_dispatch:
+
+jobs:
+  backtest:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+    steps:
+      - uses: actions/checkout@v4
+        with: { fetch-depth: 0 }
+      - uses: r-lib/actions/setup-r@v2
+      - uses: r-lib/actions/setup-r-dependencies@v2
+        with:
+          extra-packages: any::dplyr any::tidyr any::readr any::stringr any::ggplot2 any::lubridate
+          cache-version: 1
+      - name: Run multi-model backtest
+        run: R -q -e 'source("R/backtest_models.R"); pick2 <- readr::read_csv("data/clean/pick2_history.csv", show_col_types=FALSE) |> dplyr::mutate(draw_date=as.Date(draw_date)); bt <- backtest_models(pick2, start_after_days=400, win_days=180, ewma_lambda=0.97, blend_w=0.5); dir.create("data/analysis", recursive=TRUE, showWarnings=FALSE); readr::write_csv(bt$by_date, "data/analysis/backtest_by_date_multi.csv"); readr::write_csv(bt$summary, "data/analysis/backtest_summary_multi.csv")'
+      - name: Commit results (if changed)
+        run: |
+          git config user.name  "github-actions[bot]"
+          git config user.email "github-actions[bot]@users.noreply.github.com"
+          git add data/analysis/backtest_by_date_multi.csv data/analysis/backtest_summary_multi.csv || true
+          git diff --quiet && echo "No changes." || (git commit -m "chore(backtest): weekly refresh" && git push)
