@@ -116,3 +116,16 @@ show_topk("outputs/predictions_weekday_blend_E.csv", 10, "Weekday Blend (Evening
 - Uplift: Paired bootstrap CI on log-loss vs. uniform.
 
 Weights loaded from `data/analysis/weights_backoff.yml`.
+
+## How much pattern signal?
+
+```{r pattern-quant, message=FALSE, warning=FALSE}
+library(readr); library(dplyr); library(knitr)
+if (file.exists("data/analysis/patterns_quant_summary.csv")) {
+  readr::read_csv("data/analysis/patterns_quant_summary.csv", show_col_types = FALSE) |>
+    mutate(across(c(logloss, brier, gain_vs_uniform), round, 5)) |>
+    knitr::kable(caption = "Walk-forward metrics (lower is better). gain_vs_uniform = (LL_uniform - LL_model)/LL_uniform")
+}
+if (file.exists("outputs/topk_curves.png")) {
+  knitr::include_graphics("outputs/topk_curves.png")
+}
