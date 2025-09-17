@@ -35,5 +35,5 @@ jobs:
         run: |
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add data/clean/pick2_history.csv || true
+          git add data/clean/pick2_history.csv outputs/top25_pairs_next_draw.csv outputs/top25_pairs_next_draw_cal.csv || true
           git diff --quiet && echo "No changes." || (git commit -m "chore(data): refresh Pick2 history" && git push)
