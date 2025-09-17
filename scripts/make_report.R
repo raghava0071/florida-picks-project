@@ -31,3 +31,6 @@ If it doesn’t commit, re-run locally to confirm the file exists:
 cd ~/Desktop/florida-picks-project
 R -q -e 'source("scripts/update_all.R")'
 ls -lh outputs/top25_pairs_next_draw_cal.csv
+
+cat("Last updated: ", format(Sys.time(), "%Y-%m-%d %H:%M %Z"))
+
