@@ -421,6 +421,166 @@ display: none;
 ##  9 M         0     3 0.0145 0.0145
 ## 10 M         3     6 0.0144 0.0144</code></pre>
 </div>
+<div id="backoff-blend-calibration-new" class="section level2">
+<h2>Backoff Blend &amp; Calibration (New)</h2>
+<pre class="r"><code>library(readr); library(dplyr); library(tidyr); library(knitr)
+
+# Helper to read and show top-k
+show_topk &lt;- function(path, k = 10, title = basename(path)) {
+  if (!file.exists(path)) return(invisible(NULL))
+  df &lt;- readr::read_csv(path, show_col_types = FALSE)
+  names(df) &lt;- tolower(names(df))
+  # Expect columns: time, d1, d2, prob
+  if (!all(c(&quot;d1&quot;,&quot;d2&quot;,&quot;prob&quot;) %in% names(df))) return(invisible(NULL))
+  df %&gt;%
+    arrange(desc(prob)) %&gt;%
+    head(k) %&gt;%
+    mutate(pair = paste0(d1, d2)) %&gt;%
+    select(pair, prob) %&gt;%
+    knitr::kable(caption = paste0(&quot;Top &quot;, k, &quot; — &quot;, title), digits = 5)
+}
+
+show_topk(&quot;outputs/predictions_backoff_blend_M.csv&quot;, 10, &quot;Backoff Blend (Morning)&quot;)</code></pre>
+<table>
+<caption>Top 10 — Backoff Blend (Morning)</caption>
+<thead>
+<tr class="header">
+<th align="left">pair</th>
+<th align="right">prob</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">31</td>
+<td align="right">0.02120</td>
+</tr>
+<tr class="even">
+<td align="left">74</td>
+<td align="right">0.01761</td>
+</tr>
+<tr class="odd">
+<td align="left">19</td>
+<td align="right">0.01680</td>
+</tr>
+<tr class="even">
+<td align="left">83</td>
+<td align="right">0.01617</td>
+</tr>
+<tr class="odd">
+<td align="left">71</td>
+<td align="right">0.01563</td>
+</tr>
+<tr class="even">
+<td align="left">49</td>
+<td align="right">0.01509</td>
+</tr>
+<tr class="odd">
+<td align="left">82</td>
+<td align="right">0.01491</td>
+</tr>
+<tr class="even">
+<td align="left">01</td>
+<td align="right">0.01482</td>
+</tr>
+<tr class="odd">
+<td align="left">28</td>
+<td align="right">0.01456</td>
+</tr>
+<tr class="even">
+<td align="left">80</td>
+<td align="right">0.01456</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>show_topk(&quot;outputs/predictions_backoff_blend_E.csv&quot;, 10, &quot;Backoff Blend (Evening)&quot;)</code></pre>
+<table>
+<caption>Top 10 — Backoff Blend (Evening)</caption>
+<thead>
+<tr class="header">
+<th align="left">pair</th>
+<th align="right">prob</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">06</td>
+<td align="right">0.02040</td>
+</tr>
+<tr class="even">
+<td align="left">35</td>
+<td align="right">0.01896</td>
+</tr>
+<tr class="odd">
+<td align="left">49</td>
+<td align="right">0.01761</td>
+</tr>
+<tr class="even">
+<td align="left">74</td>
+<td align="right">0.01761</td>
+</tr>
+<tr class="odd">
+<td align="left">59</td>
+<td align="right">0.01743</td>
+</tr>
+<tr class="even">
+<td align="left">52</td>
+<td align="right">0.01626</td>
+</tr>
+<tr class="odd">
+<td align="left">66</td>
+<td align="right">0.01563</td>
+</tr>
+<tr class="even">
+<td align="left">10</td>
+<td align="right">0.01518</td>
+</tr>
+<tr class="odd">
+<td align="left">05</td>
+<td align="right">0.01509</td>
+</tr>
+<tr class="even">
+<td align="left">98</td>
+<td align="right">0.01473</td>
+</tr>
+</tbody>
+</table>
+<pre class="r"><code>show_topk(&quot;outputs/predictions_backoff_blend_M_cal.csv&quot;, 10, &quot;Backoff Blend Calibrated (Morning)&quot;)
+show_topk(&quot;outputs/predictions_backoff_blend_E_cal.csv&quot;, 10, &quot;Backoff Blend Calibrated (Evening)&quot;)
+
+if (file.exists(&quot;outputs/reliability_plot.png&quot;)) {
+  knitr::include_graphics(&quot;outputs/reliability_plot.png&quot;)
+}
+
+if (file.exists(&quot;outputs/mi_lift_heatmap.png&quot;)) {
+  knitr::include_graphics(&quot;outputs/mi_lift_heatmap.png&quot;)
+}
+
+if (file.exists(&quot;outputs/uplift_summary.txt&quot;)) {
+  cat(readLines(&quot;outputs/uplift_summary.txt&quot;), sep = &quot;\n&quot;)
+}
+
+## Weekday Blend Tops</code></pre>
+<pre class="r"><code>library(readr); library(dplyr); library(knitr)
+
+# Helper to render top-k rows (define if missing)
+if (!exists(&quot;show_topk&quot;)) {
+  show_topk &lt;- function(path, k = 10, title = basename(path)) {
+    if (!file.exists(path)) return(invisible(NULL))
+    df &lt;- readr::read_csv(path, show_col_types = FALSE)
+    names(df) &lt;- tolower(names(df))
+    if (!all(c(&quot;d1&quot;,&quot;d2&quot;,&quot;prob&quot;) %in% names(df))) return(invisible(NULL))
+    df |&gt;
+      dplyr::arrange(dplyr::desc(prob)) |&gt;
+      dplyr::slice_head(n = k) |&gt;
+      dplyr::mutate(pair = paste0(d1, d2)) |&gt;
+      dplyr::select(pair, prob) |&gt;
+      knitr::kable(caption = paste0(&quot;Top &quot;, k, &quot; — &quot;, title), digits = 5)
+  }
+}
+
+show_topk(&quot;outputs/predictions_weekday_blend_M.csv&quot;, 10, &quot;Weekday Blend (Morning)&quot;)
+show_topk(&quot;outputs/predictions_weekday_blend_E.csv&quot;, 10, &quot;Weekday Blend (Evening)&quot;)</code></pre>
+</div>
 
 
 

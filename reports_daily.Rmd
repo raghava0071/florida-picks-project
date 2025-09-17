@@ -82,17 +82,12 @@ if (file.exists("outputs/uplift_summary.txt")) {
   cat(readLines("outputs/uplift_summary.txt"), sep = "\n")
 }
 
+## Weekday Blend Tops
 
-If you also want to show **weekday-blend** tops:
-
-```markdown
 ```{r weekday-blend-tops, message=FALSE, warning=FALSE}
-show_topk("outputs/predictions_weekday_blend_M.csv", 10, "Weekday Blend (Morning)")
-show_topk("outputs/predictions_weekday_blend_E.csv", 10, "Weekday Blend (Evening)")
-
 library(readr); library(dplyr); library(knitr)
 
-# If show_topk isn't already defined earlier in the Rmd, include this helper:
+# Helper to render top-k rows (define if missing)
 if (!exists("show_topk")) {
   show_topk <- function(path, k = 10, title = basename(path)) {
     if (!file.exists(path)) return(invisible(NULL))
@@ -110,4 +105,3 @@ if (!exists("show_topk")) {
 
 show_topk("outputs/predictions_weekday_blend_M.csv", 10, "Weekday Blend (Morning)")
 show_topk("outputs/predictions_weekday_blend_E.csv", 10, "Weekday Blend (Evening)")
-
