@@ -1,0 +1,6 @@
+source("R/parse_pick2.R")
+x <- parse_pick2()
+stopifnot(is.data.frame(x))
+stopifnot(nrow(x) > 100)
+stopifnot(all(c("draw_date","time","d1","d2") %in% names(x)))
+cat("Parser smoke test: OK with", nrow(x), "rows\n")

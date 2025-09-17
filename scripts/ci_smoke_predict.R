@@ -1,0 +1,5 @@
+source("R/predict_next.R")
+invisible(predict_next())
+stopifnot(file.exists("outputs/predictions_next_draw.csv"))
+stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))
+cat("Prediction smoke test: files exist\n")
