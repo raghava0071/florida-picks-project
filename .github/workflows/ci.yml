@@ -31,11 +31,26 @@ jobs:
 
       - name: Smoke test: parser returns rows
         run: |
-          R -q -e 'source("R/parse_pick2.R"); x <- parse_pick2(); stopifnot(is.data.frame(x)); stopifnot(nrow(x) > 100); stopifnot(all(c("draw_date","time","d1","d2") %in% names(x)))'
+          set -e
+          cat > ci_smoke_parser.R <<'RS'
+          source("R/parse_pick2.R")
+          x <- parse_pick2()
+          stopifnot(is.data.frame(x))
+          stopifnot(nrow(x) > 100)
+          stopifnot(all(c("draw_date","time","d1","d2") %in% names(x)))
+          RS
+          Rscript ci_smoke_parser.R
 
       - name: Smoke test: predictions get written
         run: |
-          R -q -e 'source("R/predict_next.R"); invisible(predict_next()); stopifnot(file.exists("outputs/predictions_next_draw.csv")); stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))'
+          set -e
+          cat > ci_smoke_predict.R <<'RS'
+          source("R/predict_next.R")
+          invisible(predict_next())
+          stopifnot(file.exists("outputs/predictions_next_draw.csv"))
+          stopifnot(file.exists("outputs/top25_pairs_next_draw.csv"))
+          RS
+          Rscript ci_smoke_predict.R
 
       - name: Upload smoke artifacts (always)
         if: always()
