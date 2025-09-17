@@ -1,5 +1,4 @@
 name: Update Pick2 data
-
 on:
   schedule:
     - cron: "15 6 * * *"   # daily at 06:15 UTC
@@ -14,27 +13,23 @@ jobs:
     steps:
       - uses: actions/checkout@v4
 
-      - name: Install system deps (poppler)
+      - name: System deps (poppler)
         run: |
           sudo apt-get update
-          sudo apt-get install -y --no-install-recommends poppler-utils
+          sudo apt-get install -y poppler-utils
 
       - uses: r-lib/actions/setup-r@v2
-        with:
-          use-public-rspm: true
 
-      - name: Install R packages
+      - name: Install R packages (minimal)
         run: |
           R -q -e 'install.packages(c("dplyr","stringr","readr","tidyr","lubridate"), repos="https://cloud.r-project.org")'
 
       - name: Run updater
         run: R -q -e 'source("scripts/update_all.R")'
 
-      - name: Commit updated artifacts (data + predictions)
+      - name: Commit updated data (if changed)
         run: |
-          set -e
           git config user.name  "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
           git add data/clean/pick2_history.csv outputs/*.csv || true
-          git diff --staged --quiet && echo "No changes to commit." || git commit -m "chore(data): refresh Pick2 history + predictions"
-          git push
+          git diff --quiet && echo "No changes." || (git commit -m "chore(data): refresh Pick2 history" && git push)
