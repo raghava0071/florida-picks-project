@@ -145,3 +145,15 @@ if (file.exists("data/analysis/pair_zscan.csv"))
 if (file.exists("outputs/gap_distribution.png")) knitr::include_graphics("outputs/gap_distribution.png")
 if (file.exists("outputs/pair_zscan_top20.png")) knitr::include_graphics("outputs/pair_zscan_top20.png")
 ```
+
+## FDR-Gated Playlists
+
+```{r playlists, message=FALSE, warning=FALSE}
+library(readr); library(knitr)
+if (file.exists("outputs/playlist_M.csv"))
+  readr::read_csv("outputs/playlist_M.csv", show_col_types=FALSE) |> 
+    knitr::kable(caption = "Morning playlist (FDR≤0.10, top by prob)")
+if (file.exists("outputs/playlist_E.csv"))
+  readr::read_csv("outputs/playlist_E.csv", show_col_types=FALSE) |> 
+    knitr::kable(caption = "Evening playlist (FDR≤0.10, top by prob)")
+```
