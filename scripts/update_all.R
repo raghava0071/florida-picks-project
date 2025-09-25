@@ -78,3 +78,18 @@ if (file.exists("R/apply_calibration_to_next.R")) {
   source("R/apply_calibration_to_next.R")
   if (exists("apply_calibration_to_next")) apply_calibration_to_next()
 }
+
+# --- Playlists (FDR-gated) ---
+if (file.exists("R/make_playlists.R")) {
+  source("R/make_playlists.R")
+  try(make_playlists(q = 0.20, k = 10), silent = TRUE)
+} else {
+  message("Skip playlists: R/make_playlists.R missing")
+}
+
+# Safety: skip top-k curves if bt_draws is NULL
+if (exists("bt_draws") && !is.null(bt_draws)) {
+  message("Top-k curves: using backtest_draws_freq")
+} else {
+  message("Top-k curves: skipped (bt_draws is NULL)")
+}
