@@ -129,3 +129,19 @@ if (file.exists("data/analysis/patterns_quant_summary.csv")) {
 if (file.exists("outputs/topk_curves.png")) {
   knitr::include_graphics("outputs/topk_curves.png")
 }
+
+## Extra Pattern Summaries
+
+```{r extra-patterns, message=FALSE, warning=FALSE}
+library(readr); library(dplyr); library(knitr)
+if (file.exists("data/analysis/gap_distribution.csv"))
+  readr::read_csv("data/analysis/gap_distribution.csv", show_col_types=FALSE) |>
+    slice_head(n=25) |>
+    knitr::kable(caption="Gap distribution (first 25 gaps)")
+if (file.exists("data/analysis/pair_zscan.csv"))
+  readr::read_csv("data/analysis/pair_zscan.csv", show_col_types=FALSE) |>
+    slice_head(n=20) |>
+    knitr::kable(caption="Top 20 pairs by z-score vs uniform")
+if (file.exists("outputs/gap_distribution.png")) knitr::include_graphics("outputs/gap_distribution.png")
+if (file.exists("outputs/pair_zscan_top20.png")) knitr::include_graphics("outputs/pair_zscan_top20.png")
+```

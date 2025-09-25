@@ -58,26 +58,2006 @@ analyze_randomness <- function(hist_csv = "data/clean/pick2_history.csv") {
 }
 
 # 3) Recency / Gap effects
+
+
 analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
   df <- readr::read_csv(hist_csv, show_col_types = FALSE)
   names(df) <- tolower(names(df))
   if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
   df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
-  last_seen <- list(); gaps <- integer(nrow(df))
-  for (i in seq_len(nrow(df))) { p <- df$pair[i]; gaps[i] <- if (is.null(last_seen[[p]])) NA_integer_ else (i - last_seen[[p]]); last_seen[[p]] <- i }
-  out <- df |> mutate(gap = gaps)
-  poss <- out |> filter(!is.na(gap)) |> count(gap, name="occurrences")
-  hits <- out |> filter(!is.na(gap)) |> count(gap, name="hits")
-  gap_eval <- poss |> left_join(hits, by="gap") |>
-    mutate(hits = tidyr::replace_na(hits, 0L), hit_rate = hits / occurrences)
-  readr::write_csv(gap_eval, "data/analysis/gap_hit_rate.csv")
-  ggsave("outputs/gap_hit_rate.png",
-         ggplot(gap_eval, aes(gap, hit_rate)) + geom_line() + geom_point() +
-           scale_y_continuous(labels = scales::percent) +
-           labs(title="Hit rate vs gap", x="Gap (draws)", y="Hit rate"),
-         width=6.5, height=4.2, dpi=150)
-  invisible(TRUE)
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    reframe(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
 }
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
+
+analyze_recency <- function(hist_csv = "data/clean/pick2_history.csv") {
+  suppressPackageStartupMessages({library(dplyr); library(readr); library(tidyr); library(ggplot2)})
+  stopifnot(file.exists(hist_csv))
+  df <- readr::read_csv(hist_csv, show_col_types = FALSE)
+  names(df) <- tolower(names(df))
+  if (!"draw_date" %in% names(df)) df$draw_date <- seq_len(nrow(df)) else df$draw_date <- as.Date(df$draw_date)
+  df <- df |> arrange(draw_date) |> mutate(pair = paste0(d1,d2))
+
+  # For each pair, compute gaps between consecutive appearances: Δt = idx[i] - idx[i-1]
+  df$idx <- seq_len(nrow(df))
+  gaps_all <- df |>
+    group_by(pair) |>
+    summarize(gaps = {
+      pos <- idx
+      if (length(pos) < 2) integer(0) else diff(pos)
+    }, .groups = "drop") |>
+    tidyr::unnest(gaps)
+
+  # Empirical distribution of gaps: P(gap = k)
+  gap_dist <- gaps_all |>
+    count(gaps, name = "count") |>
+    arrange(gaps) |>
+    mutate(p = count / sum(count))
+
+  readr::write_csv(gap_dist, "data/analysis/gap_distribution.csv")
+
+  # Plot distribution
+  p <- ggplot(gap_dist, aes(gaps, p)) + geom_line() + geom_point() +
+    scale_y_continuous(labels = scales::percent) +
+    labs(title = "Empirical gap distribution (consecutive repeats of same pair)",
+         x = "Gap (draws between repeats)", y = "Probability")
+  ggsave("outputs/gap_distribution.png", p, width = 7, height = 4, dpi = 150)
+
+  invisible(gap_dist)
+}
+
 
 # 4) Markov transitions
 analyze_markov <- function(hist_csv = "data/clean/pick2_history.csv") {
