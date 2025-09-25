@@ -1,0 +1,43 @@
+name: Build daily report
+
+on:
+  # run by hand if you ever want to
+  workflow_dispatch:
+  # run every day at 10:15 UTC (adjust if you like)
+  schedule:
+    - cron: '15 10 * * *'
+  # also run when you change R code or report
+  push:
+    paths:
+      - 'R/**'
+      - 'scripts/**'
+      - 'reports_daily.Rmd'
+      - 'data/**'
+
+jobs:
+  build:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write   # allows committing back to the repo
+    steps:
+      - uses: actions/checkout@v4
+
+      - uses: r-lib/actions/setup-pandoc@v2
+      - uses: r-lib/actions/setup-r@v2
+        with:
+          r-version: '4.5.0'   # matches your local
+      - uses: r-lib/actions/setup-renv@v2
+
+      - name: Build report & outputs
+        run: |
+          Rscript -e 'source("scripts/update_all.R"); source("scripts/make_report.R")'
+
+      # Commit the refreshed docs (and optional outputs) back to main
+      - name: Commit docs & outputs
+        uses: stefanzweifel/git-auto-commit-action@v5
+        with:
+          commit_message: "CI: refresh data & docs"
+          # keep this minimal; docs/ is enough for Pages
+          file_pattern: |
+            docs/**
+            outputs/playsheet*.csv
