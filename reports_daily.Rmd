@@ -157,3 +157,25 @@ if (file.exists("outputs/playlist_E.csv"))
   readr::read_csv("outputs/playlist_E.csv", show_col_types=FALSE) |> 
     knitr::kable(caption = "Evening playlist (FDR≤0.10, top by prob)")
 ```
+
+## FDR-Gated Playlists
+
+```{r playlists_2, message=FALSE, warning=FALSE}
+library(readr); library(knitr)
+if (file.exists("outputs/playlist_M.csv"))
+  readr::read_csv("outputs/playlist_M.csv", show_col_types=FALSE) |> 
+    knitr::kable(caption = "Morning playlist (FDR-gated)")
+if (file.exists("outputs/playlist_E.csv"))
+  readr::read_csv("outputs/playlist_E.csv", show_col_types=FALSE) |> 
+    knitr::kable(caption = "Evening playlist (FDR-gated)")
+```
+
+## Reliability & Uplift
+
+```{r reliability, message=FALSE, warning=FALSE}
+library(knitr)
+if (file.exists("outputs/reliability_plot.png"))
+  knitr::include_graphics("outputs/reliability_plot.png")
+if (file.exists("outputs/uplift_summary.txt"))
+  cat(readLines("outputs/uplift_summary.txt"), sep = "\n")
+```
