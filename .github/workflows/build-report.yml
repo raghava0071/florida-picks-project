@@ -1,34 +1,40 @@
-name: Build & Publish Report
+name: Build daily report
+
 on:
+  workflow_dispatch:    # allow manual run
   schedule:
-    - cron: "30 6 * * *"   # daily after the data refresh
-  workflow_dispatch:
+    - cron: '30 10 * * *'  # runs 10:30 UTC daily (adjust as needed)
+
+permissions:
+  contents: write       # allow committing updated files
 
 jobs:
-  report:
+  build:
     runs-on: ubuntu-latest
-    permissions:
-      contents: write
+
     steps:
-      - uses: actions/checkout@v4
-        with:
-          fetch-depth: 0
+      - name: Checkout repo
+        uses: actions/checkout@v4
 
-      - uses: r-lib/actions/setup-r@v2
+      - name: Setup R
+        uses: r-lib/actions/setup-r@v2
 
-      - uses: r-lib/actions/setup-r-dependencies@v2
-        with:
-          extra-packages: any::rmarkdown
-          needs: |
-            rmarkdown
-          cache-version: 1
+      - name: Setup Pandoc
+        uses: r-lib/actions/setup-pandoc@v2
 
-      - name: Build report
-        run: R -q -e 'source("scripts/make_report.R")'
-
-      - name: Commit docs (if changed)
+      - name: Install renv and restore deps
         run: |
-          git config user.name  "github-actions[bot]"
+          Rscript -e 'install.packages("renv", repos="https://cloud.r-project.org")'
+          Rscript -e 'renv::restore(prompt = FALSE)'
+
+      - name: Build outputs and report
+        run: |
+          Rscript -e 'source("scripts/update_all.R"); source("scripts/make_report.R")'
+
+      - name: Commit updated docs/ and outputs/ (if changed)
+        run: |
+          git config user.name "github-actions[bot]"
           git config user.email "github-actions[bot]@users.noreply.github.com"
-          git add docs/index.html || true
-          git diff --quiet && echo "No changes." || (git commit -m "docs: publish daily report" && git push)
+          git add docs/ outputs/ data/analysis/*.csv || true
+          git commit -m "CI: refresh report and outputs" || echo "No changes to commit"
+          git push
