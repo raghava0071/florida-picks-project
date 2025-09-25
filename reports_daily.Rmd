@@ -179,3 +179,93 @@ if (file.exists("outputs/reliability_plot.png"))
 if (file.exists("outputs/uplift_summary.txt"))
   cat(readLines("outputs/uplift_summary.txt"), sep = "\n")
 ```
+
+## Add-up & Structure Patterns
+
+```{r addups, message=FALSE, warning=FALSE}
+library(readr); library(dplyr); library(knitr)
+if (file.exists("data/analysis/addups_history.csv"))
+  readr::read_csv("data/analysis/addups_history.csv", show_col_types=FALSE) |>
+    dplyr::arrange(desc(p)) |>
+    slice_head(n = 10) |>
+    knitr::kable(caption = "Top add-ups by historical frequency")
+if (file.exists("data/analysis/box_top20.csv"))
+  readr::read_csv("data/analysis/box_top20.csv", show_col_types=FALSE) |>
+    knitr::kable(caption = "Top 20 box classes (unordered pairs)")
+```
+
+```{r addups-plots, message=FALSE, warning=FALSE}
+if (file.exists("outputs/addups_hist_vs_uniform.png")) knitr::include_graphics("outputs/addups_hist_vs_uniform.png")
+if (file.exists("outputs/parity_freq.png")) knitr::include_graphics("outputs/parity_freq.png")
+if (file.exists("outputs/lowhigh_freq.png")) knitr::include_graphics("outputs/lowhigh_freq.png")
+if (file.exists("outputs/doubles_share.png")) knitr::include_graphics("outputs/doubles_share.png")
+if (file.exists("outputs/consecutive_share.png")) knitr::include_graphics("outputs/consecutive_share.png")
+```
+
+```{r next-dist, message=FALSE, warning=FALSE}
+if (file.exists("data/analysis/next_pattern_distribution.csv")) {
+  nd <- readr::read_csv("data/analysis/next_pattern_distribution.csv", show_col_types=FALSE)
+  cat("**Model-implied pattern mass for NEXT draw**\n\n")
+  nd_sum <- nd |> dplyr::filter(kind=="sum") |> tidyr::pivot_wider(names_from=which, values_from=prob)
+  nd_par <- nd |> dplyr::filter(kind=="parity") |> tidyr::pivot_wider(names_from=which, values_from=prob)
+  nd_lh  <- nd |> dplyr::filter(kind=="lowhigh") |> tidyr::pivot_wider(names_from=which, values_from=prob)
+  nd_sum |> dplyr::arrange(sum)  |> knitr::kable(caption = "Add-up mass (M/E)", digits=4)
+  nd_par |> knitr::kable(caption = "Parity mass (M/E)", digits=4)
+  nd_lh  |> knitr::kable(caption = "Low/High mass (M/E)", digits=4)
+}
+```
+
+## Add-Up (Sum) Wheels
+
+```{r sum_wheels, message=FALSE, warning=FALSE}
+library(readr); library(dplyr); library(knitr)
+
+show_csv <- function(path, cap) {
+  if (!file.exists(path)) return(invisible(NULL))
+  readr::read_csv(path, show_col_types = FALSE) %>%
+    mutate(pair = ifelse(nchar(as.character(pair))==1,
+                         sprintf('%02d', as.integer(pair)),
+                         as.character(pair))) %>%
+    knitr::kable(caption = cap, digits = 5)
+}
+
+show_csv('outputs/playsheet_sumwheel_M.csv', 'Morning sum-wheel (top sums)')
+show_csv('outputs/playsheet_sumwheel_E.csv', 'Evening sum-wheel (top sums)')
+show_csv('outputs/playsheet_filtered_by_sum.csv', 'Playsheet filtered by favored sums')
+```
+
+## Sum Wheels — Intersections & Union
+
+```{r wheels_union, message=FALSE, warning=FALSE}
+library(readr); library(knitr)
+show <- function(p, cap){ if(file.exists(p)) readr::read_csv(p, show_col_types=FALSE) |> knitr::kable(caption=cap, digits=5) }
+show('outputs/playsheet_sumwheel_M_FDR.csv', 'Morning sum-wheel ∩ FDR (may be empty if sums exclude playlist pairs)')
+show('outputs/playsheet_sumwheel_E_FDR.csv', 'Evening sum-wheel ∩ FDR (may be empty if sums exclude playlist pairs)')
+show('outputs/playsheet_sumwheel_M_UNION.csv', 'Morning sum-wheel ∪ FDR (union, deduped)')
+show('outputs/playsheet_sumwheel_E_UNION.csv', 'Evening sum-wheel ∪ FDR (union, deduped)')
+```
+
+## Sum-Wheel ∪ Playlist (Union)
+
+```{r sum-union, message=FALSE, warning=FALSE}
+library(readr); library(knitr)
+show_union <- function(p, cap) {
+  if (!file.exists(p)) return(invisible(NULL))
+  df <- readr::read_csv(p, show_col_types=FALSE)
+  knitr::kable(df, caption = cap)
+}
+show_union('outputs/playsheet_sumwheel_M_UNION.csv', 'Morning — Sum-wheel ∪ Playlist')
+show_union('outputs/playsheet_sumwheel_E_UNION.csv', 'Evening — Sum-wheel ∪ Playlist')
+```
+
+## Final Plays (Top 10 per time)
+
+```{r final-plays, message=FALSE, warning=FALSE}
+library(readr); library(dplyr); library(knitr)
+if (file.exists('outputs/playsheet_final.csv')) {
+  readr::read_csv('outputs/playsheet_final.csv', show_col_types=FALSE) |>
+    mutate(pair = as.character(pair)) |>
+    arrange(time, desc(in_playlist), desc(prob)) |>
+    kable(caption = 'Final playsheet (M & E), playlist hits first')
+}
+```

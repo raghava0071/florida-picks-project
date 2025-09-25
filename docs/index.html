@@ -2499,6 +2499,212 @@ show_union(&#39;outputs/playsheet_sumwheel_M_UNION.csv&#39;, &#39;Morning — Su
 </tbody>
 </table>
 </div>
+<div id="final-plays-top-10-per-time" class="section level2">
+<h2>Final Plays (Top 10 per time)</h2>
+<pre class="r"><code>library(readr); library(dplyr); library(knitr)
+if (file.exists(&#39;outputs/playsheet_final.csv&#39;)) {
+  readr::read_csv(&#39;outputs/playsheet_final.csv&#39;, show_col_types=FALSE) |&gt;
+    mutate(pair = as.character(pair)) |&gt;
+    arrange(time, desc(in_playlist), desc(prob)) |&gt;
+    kable(caption = &#39;Final playsheet (M &amp; E), playlist hits first&#39;)
+}</code></pre>
+<table>
+<caption>Final playsheet (M &amp; E), playlist hits first</caption>
+<thead>
+<tr class="header">
+<th align="left">time</th>
+<th align="left">pair</th>
+<th align="right">d1</th>
+<th align="right">d2</th>
+<th align="right">sum</th>
+<th align="right">prob</th>
+<th align="left">in_playlist</th>
+</tr>
+</thead>
+<tbody>
+<tr class="odd">
+<td align="left">E</td>
+<td align="left">31</td>
+<td align="right">3</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0.0136568</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="left">35</td>
+<td align="right">3</td>
+<td align="right">5</td>
+<td align="right">8</td>
+<td align="right">0.0189578</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">E</td>
+<td align="left">26</td>
+<td align="right">2</td>
+<td align="right">6</td>
+<td align="right">8</td>
+<td align="right">0.0145553</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="left">44</td>
+<td align="right">4</td>
+<td align="right">4</td>
+<td align="right">8</td>
+<td align="right">0.0140162</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">E</td>
+<td align="left">18</td>
+<td align="right">1</td>
+<td align="right">8</td>
+<td align="right">9</td>
+<td align="right">0.0123091</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="left">36</td>
+<td align="right">3</td>
+<td align="right">6</td>
+<td align="right">9</td>
+<td align="right">0.0112309</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">E</td>
+<td align="left">27</td>
+<td align="right">2</td>
+<td align="right">7</td>
+<td align="right">9</td>
+<td align="right">0.0103324</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="left">09</td>
+<td align="right">0</td>
+<td align="right">9</td>
+<td align="right">9</td>
+<td align="right">0.0098832</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">E</td>
+<td align="left">17</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">8</td>
+<td align="right">0.0097934</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">E</td>
+<td align="left">08</td>
+<td align="right">0</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">0.0084456</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="left">31</td>
+<td align="right">3</td>
+<td align="right">1</td>
+<td align="right">4</td>
+<td align="right">0.0212040</td>
+<td align="left">TRUE</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="left">19</td>
+<td align="right">1</td>
+<td align="right">9</td>
+<td align="right">10</td>
+<td align="right">0.0168014</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="left">28</td>
+<td align="right">2</td>
+<td align="right">8</td>
+<td align="right">10</td>
+<td align="right">0.0145553</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="left">35</td>
+<td align="right">3</td>
+<td align="right">5</td>
+<td align="right">8</td>
+<td align="right">0.0139263</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="left">08</td>
+<td align="right">0</td>
+<td align="right">8</td>
+<td align="right">8</td>
+<td align="right">0.0134771</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="left">26</td>
+<td align="right">2</td>
+<td align="right">6</td>
+<td align="right">8</td>
+<td align="right">0.0120395</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="left">37</td>
+<td align="right">3</td>
+<td align="right">7</td>
+<td align="right">10</td>
+<td align="right">0.0112309</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="left">46</td>
+<td align="right">4</td>
+<td align="right">6</td>
+<td align="right">10</td>
+<td align="right">0.0101527</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="odd">
+<td align="left">M</td>
+<td align="left">44</td>
+<td align="right">4</td>
+<td align="right">4</td>
+<td align="right">8</td>
+<td align="right">0.0089847</td>
+<td align="left">FALSE</td>
+</tr>
+<tr class="even">
+<td align="left">M</td>
+<td align="left">17</td>
+<td align="right">1</td>
+<td align="right">7</td>
+<td align="right">8</td>
+<td align="right">0.0072776</td>
+<td align="left">FALSE</td>
+</tr>
+</tbody>
+</table>
+</div>
 
 
 
