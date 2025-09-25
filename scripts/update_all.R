@@ -1,4 +1,18 @@
 source("R/load_tuned_weights.R")
+## --- Backtest file chooser (added) ---
+bt_candidates <- c(
+  "data/analysis/backtest_by_date_freq.csv",
+  "data/analysis/backtest_by_date.csv",
+  "data/analysis/backtest_by_date_multi.csv"
+)
+in_bt <- bt_candidates[file.exists(bt_candidates)][1]
+if (length(in_bt) == 0 || is.na(in_bt)) {
+  message("No backtest file found; skipping reliability/uplift sections.")
+  in_bt <- NULL
+} else {
+  message("Using backtest file: ", in_bt)
+}
+## --- end chooser ---
 suppressPackageStartupMessages({
   library(readr); library(dplyr); library(stringr); library(tidyr)
 })

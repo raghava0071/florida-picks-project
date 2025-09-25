@@ -6,7 +6,7 @@ in_bt  <- "data/analysis/backtest_draws_freq.csv"
 in_hist <- "data/clean/pick2_history.csv"
 out_cal <- "data/analysis/calibration.csv"
 
-stopifnot(file.exists(in_bt))
+if (is.null(in_bt) || !file.exists(in_bt)) { message("Skipping: no backtest file"); break_or_return <- TRUE }
 bt <- readr::read_csv(in_bt, show_col_types = FALSE)
 
 # ------------- 1) Try to standardize/derive probability p --------------------
